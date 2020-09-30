@@ -152,6 +152,128 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-处理new分配内存失败情况" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/09/30/%E5%A4%84%E7%90%86new%E5%88%86%E9%85%8D%E5%86%85%E5%AD%98%E5%A4%B1%E8%B4%A5%E6%83%85%E5%86%B5/">处理new分配内存失败情况</a>
+    </h1>
+  
+
+        
+        <a href="/2020/09/30/%E5%A4%84%E7%90%86new%E5%88%86%E9%85%8D%E5%86%85%E5%AD%98%E5%A4%B1%E8%B4%A5%E6%83%85%E5%86%B5/" class="archive-article-date">
+  	<time datetime="2020-09-30T14:08:43.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-09-30</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>转自：<a target="_blank" rel="noopener" href="http://www.51testing.com/html/70/n-827070.html">http://www.51testing.com/html/70/n-827070.html</a></p>
+<p>在C++语言中，我们经常会使用new给一个对象分配内存空间，而当内存不够会出现内存不足的情况。C++提供了两中报告方式：</p>
+<ol>
+<li>抛出bad_alloc异常来报告分配失败</li>
+<li>返回空指针，而不会抛出异常</li>
+</ol>
+<p>　　C++为什么会采用这两种方式呢？这主要是由于各大编译器公司设计C++编译器公司的结果，因为标准C++是提供了异常机制的。例如，VC++6.0中当new分配内存失败时会返回空指针，而不会抛出异常。而gcc的编译器对于C++标准支持比较好，所以当new分配内存失败时会抛出异常。</p>
+<p>　　究竟为什么会出现这种情况呢？</p>
+<p>　　首先，C++是在C语言的基础之上发展而来，而且C++发明时是想尽可能的与C语言兼容。而C语言是一种没有异常机制的语言，所以C++应该会提供一种没有异常机制的new分配内存失败报告机制；（确实是如此，早期的C++还没有加入异常机制）</p>
+<p>　　其次在返回空指针的实现过程中，C++采用的是malloc/calloc 等分配内存的函数，该类函数不会抛出异常，但是在分配内存失败时会返回“空指针”。</p>
+<p>　　最后，对于标准的C++，有着比较完善的异常处理机制，所以对于出现异常时，会抛出响应的异常。对于new分配失败时，系统会抛出bad_alloc异常。</p>
+<p>　　鉴于以上原因，我们在不同的编译器需要new分配失败时做不同的处理。例如：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">情况<span class="number">1</span>：</span><br><span class="line"><span class="keyword">if</span> ( p == <span class="number">0</span> ) <span class="comment">// 检查 p 是否空指针</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">...</span><br><span class="line">情况<span class="number">2</span>：</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">int</span>* p = <span class="keyword">new</span> <span class="keyword">int</span>(<span class="number">5</span>);</span><br><span class="line">        <span class="comment">// 其它代码</span></span><br><span class="line">&#125; <span class="keyword">catch</span> ( <span class="keyword">const</span> bad_alloc&amp; e ) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+<p>　　情况1和情况2的代码都是对于new失败时的处理，而针对不同的编译器，可以这种处理会完全失效。如果在gcc编译器采用情况1,那么if(p==0)完全是没有意义的，因为不管new内存分配成功失败与否，都不会出现p＝0的情况。即，如果分配成功，p＝0完全不可能；而分配失败，new会抛出异常跳过其后面的代码。而需要采用情况2的处理方式，即应该来捕捉异常。</p>
+<p>　　同样，如果在VC++6.0中采用情况2的代码，那么new分配失败时，完全不会抛出异常，那么捕捉异常也是徒劳的。</p>
+<p>　　所以在new分配内存的异常处理时要特别小心，可以两种方式联合使用，来解决跨平台跨编译器的难题。</p>
+<p>　　当然情况2中的异常处理代码是最简单的处理方式，下面我们为其制定一个客户制定的错误处理函数，即new－handler。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*new_handler)</span><span class="params">()</span></span>;</span><br><span class="line"><span class="function">new_handler <span class="title">set_new_handler</span><span class="params">(new_handler p)</span> <span class="title">throw</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>这里首先定义new－handler函数指针类型，然后定义一个new－handler函数set_new_handler，其参数是指向operator new无法分配足够内存时应该被调用的函数。其返回指也是一个指针，指向set_new_handler被调用前正在执行（但是马上就要被替换）的那个new－handler函数。下面设计一个当operator new无法分配足够内存时应该被调用的函数：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">noMemoryToAlloc</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       <span class="built_in">std</span>::<span class="built_in">cerr</span> &lt;&lt; <span class="string">&quot;unable to satisfy request for memory\n&quot;</span>;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">std</span>::<span class="built_in">abort</span>();</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用noMemoryToAlloc函数的代码为：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">       set_new_handler(nomorememory);</span><br><span class="line">       <span class="keyword">int</span> *pArray = <span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">100000000000000L</span>];</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​    当operator new无法分配足够空间时，noMemoryToAlloc就会被调用，于是程序就会发出一个错误信息cerr之后，调用abort函数结束程序。</p>
+<p>　　如果operator new无法分配足够空间时，我们希望不断调用new－handler函数，直到找到足够内存为止，那么我们的operator new函数就可以设计为：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> *<span class="keyword">operator</span> <span class="title">new</span><span class="params">(<span class="built_in">std</span>::<span class="keyword">size_t</span> size)</span> <span class="title">throw</span><span class="params">(<span class="built_in">std</span>::bad_alloc)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">        <span class="keyword">if</span> ( size==<span class="number">0</span> ) &#123;</span><br><span class="line">             size  = <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">       <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">            调用<span class="built_in">malloc</span>等内存分配函数来尝试分配size大小的内存；</span><br><span class="line">            <span class="keyword">if</span> ( 分配成功 )</span><br><span class="line">                 <span class="keyword">return</span> 指向分配得来的内存指针；</span><br><span class="line">            new_handler globalHandler  = set_new_handler(<span class="number">0</span>);</span><br><span class="line">            set_new_handle(globalHandler);</span><br><span class="line">            <span class="keyword">if</span>(globalHandler)</span><br><span class="line">                   (*globalHandler)();</span><br><span class="line">           <span class="keyword">else</span></span><br><span class="line">                   <span class="keyword">throw</span> <span class="built_in">std</span>::bad_alloc();</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>转自：<a target="_blank" rel="noopener" href="http://blog.sina.com.cn/s/blog_9f1c09310101953s.html">http://blog.sina.com.cn/s/blog_9f1c09310101953s.html</a></p>
+<p> 使用new分配内存失败时往往会使用asert()终止程序，但是这只能在除错模式下abert函数才能有效，在生产模式下，abert只是一个void指令，所以连程序都跳不出来。</p>
+<p>而当new操作失败时，一个好的程序不能简单的终止程序就行了，而是要尝试去释放内存<br>如何能在new操作失败，在抛出异常之前先把相应的处理做了呢？这就要用到new_handler了，它是在抛出exception调用的。为了指定这个所谓的“内存不足处理函数，new_handler”，client必须调用set_new_handler，这是头文件提供的函数，用法：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">void</span> （*new_handler）()</span><br><span class="line"><span class="function">new_handler <span class="title">set_new_handler</span><span class="params">(new_handler p)</span> <span class="title">throw</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+<p>简单的程序测试：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;stdafx.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">NoMoreMemory</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="built_in">cout</span>&lt;&lt;<span class="string">&quot;Unable to statisty request for memory&quot;</span>&lt;&lt;<span class="built_in">endl</span>;</span><br><span class="line"><span class="built_in">abort</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> _tmain(<span class="keyword">int</span> argc, _TCHAR* argv[])</span><br><span class="line">&#123;</span><br><span class="line">set_new_handler(NoMoreMemory);</span><br><span class="line"><span class="keyword">int</span> *p=<span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">536870911</span>];</span><br><span class="line"><span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注：当operator new 无法满足内存需求时，它会不只一次地调用new_handler函数（如果new_handler没有退出程序的话）；它会不断地调用，直到找到足够的内存为止。因此一个良好设计的new_handler函数必须完成下列事情之一：</p>
+<ol>
+<li>让更多的内存可用。这或许能够让operator new 的下一次内存配置行为成功。实现此策略的方法之一就是在程序起始时配置一大块内存，然后在new_handler第一次被调用时释放之。如此的释放动作常常伴随着某种警告信息，告诉用户目前的内存已经处于低水位，再来的内存需求可能失败，除非有更多的内存回复自由身。</li>
+<li>安装一个不同的new_handler,如果目前的new_handler无法让更多的内存可用，或许它知道另一个new_handler手上我有比较多的资源。果真如此，目前的new_handler就可以安装另外一个new_handler以取代自己（只要再调用一次set_new_handler即可）。当operator new下次调用new_handler函数时，它会调用最新安装的那个。</li>
+<li>卸除掉这个new_handler，也就是说，将null指针传给set_new_handler，一旦没有安装任何new_handler，operator new就会在内存配置失败时抛出一个类型为std::bad_alloc的exception。</li>
+<li>抛出一个exception，类型为std::bad_alloc(或者派生类型)。这样的exception不会被operator new捕获，所以它们就会传动到最初踢出内存需求的那个点上。</li>
+<li>不返回，直接调用abort或exit。</li>
+</ol>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">C++内存管理</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2020/09/30/%E5%A4%84%E7%90%86new%E5%88%86%E9%85%8D%E5%86%85%E5%AD%98%E5%A4%B1%E8%B4%A5%E6%83%85%E5%86%B5/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+
+  
     <article id="post-学习笔记" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -2432,6 +2554,17 @@ TkSuQmCC'/></p>
     <div class="article-info article-info-index">
       
       
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">C++内存</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
       
 
       
@@ -2557,6 +2690,14 @@ return o(i(t),arguments.length<2?void 0:u(arguments[1]))}})},function(t,n,r){var
             <input type="checkbox" q-on="click:toggleTag(e)" q-attr="checked:showTags">
           </label>
           <ul class="article-tag-list" q-show="showTags">
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">C++内存管理</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">C++内存</a>
+              </li>
             
             <div class="clearfix"></div>
           </ul>
