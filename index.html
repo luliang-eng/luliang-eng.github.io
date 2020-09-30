@@ -297,18 +297,108 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+        <h2 id="内存泄漏简介及后果"><a href="#内存泄漏简介及后果" class="headerlink" title="内存泄漏简介及后果"></a>内存泄漏简介及后果</h2><p>wikipedia中这样定义内存泄漏：在计算机科学中，内存泄漏指由于疏忽或错误造成程序未能释放已经不再使用的内存的情况。内存泄漏并非指内存在物理上的消失，而是应用程序分配某段内存后，由于设计错误，导致在释放该段内存之前就失去了对该段内存的控制，从而造成了内存的浪费。</p>
+<p>最难捉摸也最难检测到的错误之一是内存泄漏，即未能正确释放以前分配的内存的 bug。 只发生一次的小的内存泄漏可能不会被注意，但泄漏大量内存的程序或泄漏日益增多的程序可能会表现出各种征兆：从性能不良（并且逐渐降低）到内存完全用尽。 更糟的是，泄漏的程序可能会用掉太多内存，以致另一个程序失败，而使用户无从查找问题的真正根源。 此外，即使无害的内存泄漏也可能是其他问题的征兆。</p>
+<p>内存泄漏会因为减少可用内存的数量从而降低计算机的性能。最终，在最糟糕的情况下，过多的可用内存被分配掉导致全部或部分设备停止正常工作，或者应用程序崩溃。内存泄漏可能不严重，甚至能够被常规的手段检测出来。在现代操作系统中，一个应用程序使用的常规内存在程序终止时被释放。这表示一个短暂运行的应用程序中的内存泄漏不会导致严重后果。</p>
+<p>在以下情況，内存泄漏导致较严重的后果：</p>
+<ul>
+<li><p>程序运行后置之不理，并且随着时间的流失消耗越来越多的内存（比如服务器上的后台任务，尤其是<a target="_blank" rel="noopener" href="http://zh.wikipedia.org/wiki/%E5%B5%8C%E5%85%A5%E5%BC%8F%E7%B3%BB%E7%BB%9F">嵌入式系统</a>中的后台任务，这些任务可能被运行后很多年内都置之不理）</p>
+</li>
+<li><p>新的内存被频繁地分配，比如当显示电脑游戏或动画视频画面时；</p>
+</li>
+<li><p>程序能够请求未被释放的内存（比如<a target="_blank" rel="noopener" href="http://zh.wikipedia.org/wiki/%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98">共享内存</a>），甚至是在程序终止的时候</p>
+</li>
+<li><p>泄漏在操作系统内部发生</p>
+</li>
+<li><p>泄漏在系统关键驱动中发生</p>
+</li>
+<li><p>内存非常有限，比如在<a target="_blank" rel="noopener" href="http://zh.wikipedia.org/wiki/%E5%B5%8C%E5%85%A5%E5%BC%8F%E7%B3%BB%E7%BB%9F">嵌入式系统</a>或便携设备中</p>
+</li>
+<li><p>当运行于一个终止时内存并不自动释放的操作系统（比如<a target="_blank" rel="noopener" href="http://zh.wikipedia.org/w/index.php?title=AmigaOS&action=edit&redlink=1">AmigaOS</a>）之上，而且一旦丢失只能通过重启来恢复</p>
+</li>
+</ul>
+<p>  下面我们通过以下例子来介绍如何检测内存泄漏问题：</p>
+  <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">GetMemory</span><span class="params">(<span class="keyword">char</span> *p, <span class="keyword">int</span> num)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    p = (<span class="keyword">char</span>*)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">char</span>) * num);<span class="comment">//使用new也能够检测出来</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc,<span class="keyword">char</span>** argv)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">char</span> *str = <span class="literal">NULL</span>;</span><br><span class="line">    GetMemory(str, <span class="number">100</span>);</span><br><span class="line">    <span class="built_in">cout</span>&lt;&lt;<span class="string">&quot;Memory leak test!&quot;</span>&lt;&lt;<span class="built_in">endl</span>;</span><br><span class="line">    <span class="comment">//如果main中存在while循环调用GetMemory</span></span><br><span class="line">    <span class="comment">//那么问题将变得很严重</span></span><br><span class="line">    <span class="comment">//while(1)&#123;GetMemory(...);&#125;</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>实际中不可能这么简单，如果这么简单也用不着别的方法，程序员一眼就可以看出问题，此程序只用于测试。</p>
+<h2 id="Windows平台下的内存泄漏检测"><a href="#Windows平台下的内存泄漏检测" class="headerlink" title="Windows平台下的内存泄漏检测"></a>Windows平台下的内存泄漏检测</h2><h3 id="检测是否存在内存泄漏问题"><a href="#检测是否存在内存泄漏问题" class="headerlink" title="检测是否存在内存泄漏问题"></a>检测是否存在内存泄漏问题</h3><p>Windows平台下面Visual Studio 调试器和 C 运行时 (CRT) 库为我们提供了检测和识别内存泄漏的有效方法，原理大致如下：内存分配要通过CRT在运行时实现，只要在分配内存和释放内存时分别做好记录，程序结束时对比分配内存和释放内存的记录就可以确定是不是有内存泄漏。在vs中启用内存检测的方法如下：</p>
+<p>STEP1，在程序中包括以下语句： （#include 语句必须采用上文所示顺序。 如果更改了顺序，所使用的函数可能无法正常工作。）</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _CRTDBG_MAP_ALLOC</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;crtdbg.h&gt;</span></span></span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>通过包括 crtdbg.h，将 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/6ewkz86d.aspx">malloc</a> 和 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/we1whae7.aspx">free</a> 函数映射到它们的调试版本，即 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/faz3a37z.aspx">_malloc_dbg</a> 和 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/16swbsbc.aspx">_free_dbg</a>，这两个函数将跟踪内存分配和释放。 此映射只在调试版本（在其中定义了<strong>_DEBUG</strong>）中发生。 发布版本使用普通的 <strong>malloc</strong> 和 <strong>free</strong> 函数。</p>
+<p>#define 语句将 CRT 堆函数的基版本映射到对应的“Debug”版本。 并非绝对需要该语句；但如果没有该语句，内存泄漏转储包含的有用信息将较少。</p>
+<p>STEP2， 在添加了上述语句之后，可以通过在程序中包括以下语句（通常应恰好放在程序退出位置之前）来转储内存泄漏信息：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_CrtDumpMemoryLeaks();</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p>此时，完整的代码如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _CRTDBG_MAP_ALLOC</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;crtdbg.h&gt;</span></span></span><br><span class="line"> </span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">GetMemory</span><span class="params">(<span class="keyword">char</span> *p, <span class="keyword">int</span> num)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    p = (<span class="keyword">char</span>*)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">char</span>) * num);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc,<span class="keyword">char</span>** argv)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">char</span> *str = <span class="literal">NULL</span>;</span><br><span class="line">    GetMemory(str, <span class="number">100</span>);</span><br><span class="line">    <span class="built_in">cout</span>&lt;&lt;<span class="string">&quot;Memory leak test!&quot;</span>&lt;&lt;<span class="built_in">endl</span>;</span><br><span class="line">    _CrtDumpMemoryLeaks();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<p>当在调试器下运行程序时，<a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/d41t22sb.aspx">_CrtDumpMemoryLeaks</a> 将在<a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/3hk6fby3.aspx">“输出”窗口</a>中显示内存泄漏信息。 内存泄漏信息如下所示：</p>
+<p><img src="C:\Users\Administrator\blog\source\img\图1.png" alt="图1"></p>
+<p><img src="C:\Users\Administrator\blog\source\img\图2.png" alt="图2"></p>
+<p>未定义 _CRTDBG_MAP_ALLOC 时，所显示的会是：</p>
+<ul>
+<li><p>内存分配编号（在大括号内）</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/htdyz80k.aspx">块类型</a>（普通、客户端或 CRT）</p>
+</li>
+<li><p>十六进制形式的内存位置</p>
+<ul>
+<li>“普通块”是由程序分配的普通内存。</li>
+<li>“客户端块”是由 MFC 程序用于需要析构函数的对象的特殊类型内存块。 MFC new 操作根据正在创建的对象的需要创建普通块或客户端块。</li>
+<li>“CRT 块”是由 CRT 库为自己使用而分配的内存块。 CRT 库处理这些块的释放，因此您不大可能在内存泄漏报告中看到这些块，除非出现严重错误（例如 CRT 库损坏）。</li>
+</ul>
+<p>从不会在内存泄漏信息中看到下面两种块类型：</p>
+<ul>
+<li>“可用块”是已释放的内存块。</li>
+<li>“忽略块”是您已特别标记的块，因而不出现在内存泄漏报告中。</li>
+</ul>
+</li>
+<li><p>以字节为单位的块大小</p>
+</li>
+<li><p>前 16 字节的内容（亦为十六进制）</p>
+</li>
+</ul>
+<p>定义了 _CRTDBG_MAP_ALLOC 时，还会显示在其中分配泄漏的内存的文件。 文件名后括号中的数字（本示例中为 10）是该文件中的行号。</p>
+<p>注意：如果程序总是在同一位置退出，调用 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/d41t22sb.aspx">_CrtDumpMemoryLeaks</a> 将非常容易。 如果程序从多个位置退出，则无需在每个可能退出的位置放置对 <strong>_CrtDumpMemoryLeaks</strong> 的调用，而可以在程序开始处包含以下调用：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );</span><br></pre></td></tr></table></figure>
+
+<p>该语句在程序退出时自动调用 <strong>_CrtDumpMemoryLeaks</strong>。 必须同时设置 <strong>_CRTDBG_ALLOC_MEM_DF</strong> 和 <strong>_CRTDBG_LEAK_CHECK_DF</strong> 两个位域，如前面所示。</p>
+<h3 id="定位具体的内存泄漏地方"><a href="#定位具体的内存泄漏地方" class="headerlink" title="定位具体的内存泄漏地方"></a>定位具体的内存泄漏地方</h3><p>通过上面的方法，我们几乎可以定位到是哪个地方调用内存分配函数malloc和new等，如上例中的GetMemory函数中，即第10行！但是不能定位到，在哪个地方调用GetMemory()导致的内存泄漏，而且在大型项目中可能有很多处调用GetMemory。如何要定位到在哪个地方调用GetMemory导致的内存泄漏？</p>
+<p>定位内存泄漏的另一种技术涉及在关键点对应用程序的内存状态拍快照。 CRT 库提供一种结构类型 <strong>_CrtMemState</strong>，您可用它存储内存状态的快照：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_CrtMemState s1, s2, s3;</span><br></pre></td></tr></table></figure>
+
+<p>若要在给定点对内存状态拍快照，请向 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/h3z85t43.aspx">_CrtMemCheckpoint</a> 函数传递 <strong>_CrtMemState</strong> 结构。 该函数用当前内存状态的快照填充此结构：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_CrtMemCheckpoint( &amp;s1 );</span><br></pre></td></tr></table></figure>
+
+<p>通过向 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/swh3417y.aspx">_CrtMemDumpStatistics</a> 函数传递 <strong>_CrtMemState</strong> 结构，可以在任意点转储该结构的内容：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">_CrtMemDumpStatistics( &amp;s1 );</span><br></pre></td></tr></table></figure>
+
+<p>若要确定代码中某一部分是否发生了内存泄漏，可以在该部分之前和之后对内存状态拍快照，然后使用 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/k4htzb06.aspx">_CrtMemDifference</a> 比较这两个状态：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">_CrtMemCheckpoint( &amp;s1 );</span><br><span class="line"><span class="comment">// memory allocations take place here</span></span><br><span class="line">_CrtMemCheckpoint( &amp;s2 );</span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> ( _CrtMemDifference( &amp;s3, &amp;s1, &amp;s2) )</span><br><span class="line">   _CrtMemDumpStatistics( &amp;s3 );</span><br></pre></td></tr></table></figure>
+
+<p>顾名思义，<strong>_CrtMemDifference</strong> 比较两个内存状态（s1 和 s2），生成这两个状态之间差异的结果（s3）。 在程序的开始和结尾放置 <strong>_CrtMemCheckpoint</strong> 调用，并使用<strong>_CrtMemDifference</strong> 比较结果，是检查内存泄漏的另一种方法。 如果检测到泄漏，则可以使用 <strong>_CrtMemCheckpoint</strong> 调用通过二进制搜索技术来划分程序和定位泄漏。</p>
+<p>如上面的例子程序我们可以这样来定位确切的调用GetMemory的地方：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _CRTDBG_MAP_ALLOC</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;crtdbg.h&gt;</span></span></span><br><span class="line"> </span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</span><br><span class="line"> </span><br><span class="line">_CrtMemState s1, s2, s3;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">GetMemory</span><span class="params">(<span class="keyword">char</span> *p, <span class="keyword">int</span> num)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    p = (<span class="keyword">char</span>*)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">char</span>) * num);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc,<span class="keyword">char</span>** argv)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    _CrtMemCheckpoint( &amp;s1 );</span><br><span class="line">    <span class="keyword">char</span> *str = <span class="literal">NULL</span>;</span><br><span class="line">    GetMemory(str, <span class="number">100</span>);</span><br><span class="line">    _CrtMemCheckpoint( &amp;s2 );</span><br><span class="line">    <span class="keyword">if</span> ( _CrtMemDifference( &amp;s3, &amp;s1, &amp;s2) )</span><br><span class="line">        _CrtMemDumpStatistics( &amp;s3 );</span><br><span class="line">    <span class="built_in">cout</span>&lt;&lt;<span class="string">&quot;Memory leak test!&quot;</span>&lt;&lt;<span class="built_in">endl</span>;</span><br><span class="line">    _CrtDumpMemoryLeaks();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调试时，程序输出如下结果：</p>
+<p><img src="C:\Users\Administrator\blog\source_posts\图3.png"></p>
+<p>这说明在s1和s2之间存在内存泄漏！！！如果GetMemory不是在s1和s2之间调用，那么就不会有信息输出。</p>
+<h2 id="Linux平台下的内存泄漏检测"><a href="#Linux平台下的内存泄漏检测" class="headerlink" title="Linux平台下的内存泄漏检测"></a>Linux平台下的内存泄漏检测</h2><p>在上面我们介绍了，vs中在代码中“包含crtdbg.h，将 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/6ewkz86d.aspx">malloc</a> 和 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/we1whae7.aspx">free</a> 函数映射到它们的调试版本，即 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/faz3a37z.aspx">_malloc_dbg</a> 和 <a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/16swbsbc.aspx">_free_dbg</a>，这两个函数将跟踪内存分配和释放。 此映射只在调试版本（在其中定义了<strong>_DEBUG</strong>）中发生。 发布版本使用普通的 <strong>malloc</strong> 和 <strong>free</strong> 函数。”即为malloc和free做了钩子，用于记录内存分配信息。</p>
+<p>Linux下面也有原理相同的方法——mtrace，<a target="_blank" rel="noopener" href="http://en.wikipedia.org/wiki/Mtrace%E3%80%82%E6%96%B9%E6%B3%95%E7%B1%BB%E4%BC%BC%EF%BC%8C%E6%88%91%E8%BF%99%E5%B0%B1%E4%B8%8D%E5%85%B7%E4%BD%93%E6%8F%8F%E8%BF%B0%EF%BC%8C%E5%8F%82%E5%8A%A0%E7%BB%99%E5%87%BA%E7%9A%84%E9%93%BE%E6%8E%A5%E3%80%82%E8%BF%99%E8%8A%82%E6%88%91%E4%B8%BB%E8%A6%81%E4%BB%8B%E7%BB%8D%E4%B8%80%E4%B8%AA%E9%9D%9E%E5%B8%B8%E5%BC%BA%E5%A4%A7%E7%9A%84%E5%B7%A5%E5%85%B7valgrind%E3%80%82%E5%A6%82%E4%B8%8B%E5%9B%BE%E6%89%80%E7%A4%BA">http://en.wikipedia.org/wiki/Mtrace。方法类似，我这就不具体描述，参加给出的链接。这节我主要介绍一个非常强大的工具valgrind。如下图所示</a></p>
+<p><img src="C:\Users\Administrator\blog\source_posts\图4.png"></p>
+<p>如上图所示知道：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">==6118== 100 bytes <span class="keyword">in</span> 1 blocks are definitely lost <span class="keyword">in</span> loss record 1 of 1</span><br><span class="line">==6118==  at 0x4024F20: malloc (vg_replace_malloc.c:236)</span><br><span class="line">==6118==  by 0x8048724: GetMemory(char*, int) (<span class="keyword">in</span> /home/netsky/workspace/a.out)</span><br><span class="line">==6118==  by 0x804874E: main (<span class="keyword">in</span> /home/netsky/workspace/a.out)</span><br></pre></td></tr></table></figure>
+
+<p>是在main中调用了GetMemory导致的内存泄漏，GetMemory中是调用了malloc导致泄漏了100字节的内存。</p>
+<p>Valgrind的使用请见手册<a target="_blank" rel="noopener" href="http://valgrind.org/docs/manual/manual.html%E3%80%82">http://valgrind.org/docs/manual/manual.html。</a></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>其实内存泄漏的原因可以概括为：调用了malloc/new等内存申请的操作，但缺少了对应的free/delete，总之就是，malloc/new比free/delete的数量多。我们在编程时需要注意这点，保证每个malloc都有对应的free，每个new都有对应的deleted！！！平时要养成这样一个好的习惯。</p>
+<p>要避免内存泄漏可以总结为以下几点：</p>
+<ul>
+<li>程序员要养成良好习惯，保证malloc/new和free/delete匹配</li>
+<li>检测内存泄漏的关键原理就是，检查malloc/new和free/delete是否匹配，一些工具也就是这个原理。要做到这点，就是利用宏或者钩子，在用户程序与运行库之间加了一层，用于记录内存分配情况</li>
+</ul>
+<p>作者：吴秦<br>出处：<a target="_blank" rel="noopener" href="http://www.cnblogs.com/skynet/">http://www.cnblogs.com/skynet/</a></p>
 
       
 
