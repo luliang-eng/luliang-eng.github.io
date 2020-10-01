@@ -8,12 +8,12 @@
   <link rel="dns-prefetch" href="http://example.com">
   <title>细说new与malloc的10点区别 | Hexo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="1. 申请的内存所在位置new操作符从自由存储区（free store）上为对象动态分配内存空间，而malloc函数从堆上动态分配内存。自由存储区是C++基于new操作符的一个抽象概念，凡是通过new操作符进行内存申请，该内存即为自由存储区。而堆是操作系统中的术语，是操作系统所维护的一块特殊内存，用于程序的内存动态分配，C语言使用malloc从堆上分配内存，使用free释放已分配的对应内存。 那么">
+  <meta name="description" content="1. 申请的内存所在位置new操作符从自由存储区（free store）上为对象动态分配内存空间，而malloc函数从堆上动态分配内存。自由存储区是C++基于new操作符的一个抽象概念，凡是通过new操作符进行内存申请，该内存即为自由存储区。而堆是操作系统中的术语，是操作系统所维护的一块特殊内存，用于程序的内存动态分配，C语言使用malloc从堆上分配内存，使用free释放已分配的对应内存。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="细说new与malloc的10点区别">
 <meta property="og:url" content="http://example.com/2020/09/30/%E7%BB%86%E8%AF%B4new%E4%B8%8Emalloc%E7%9A%8410%E7%82%B9%E5%8C%BA%E5%88%AB/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="1. 申请的内存所在位置new操作符从自由存储区（free store）上为对象动态分配内存空间，而malloc函数从堆上动态分配内存。自由存储区是C++基于new操作符的一个抽象概念，凡是通过new操作符进行内存申请，该内存即为自由存储区。而堆是操作系统中的术语，是操作系统所维护的一块特殊内存，用于程序的内存动态分配，C语言使用malloc从堆上分配内存，使用free释放已分配的对应内存。 那么">
+<meta property="og:description" content="1. 申请的内存所在位置new操作符从自由存储区（free store）上为对象动态分配内存空间，而malloc函数从堆上动态分配内存。自由存储区是C++基于new操作符的一个抽象概念，凡是通过new操作符进行内存申请，该内存即为自由存储区。而堆是操作系统中的术语，是操作系统所维护的一块特殊内存，用于程序的内存动态分配，C语言使用malloc从堆上分配内存，使用free释放已分配的对应内存。">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="data:img/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAAbEAAABICAYAAAB4OsvUAAAAAXNSR0IArs4c6QAAAARnQU1BAACx
 jwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAx3SURBVHhe7Z0/cuy4EcbfZXartuxsg018hJ0q
@@ -312,7 +312,7 @@ XuC5uI5YB/eFqgbj9h747vGK30esMYaq+MnwnQXM4RVl9RznXJbPalinPsthD+c6sp7OzCyHPZzD
 mpX4oGZmOVxneTN73a8DoJmZrfvUASU7IN3xLNk+mOOYmf1tPgCamb1IHY7e7S89i5n9XT4AmpmZ
 mR3GB0AzMzOzw/gAaGZmZnYYHwDNzMzMjvKf//lfXDlfeIyHYPsAAAAASUVORK5CYII=">
 <meta property="article:published_time" content="2020-09-30T14:02:06.000Z">
-<meta property="article:modified_time" content="2020-10-01T11:06:50.724Z">
+<meta property="article:modified_time" content="2020-10-01T12:27:28.188Z">
 <meta property="article:author" content="John Doe">
 <meta property="article:tag" content="C++内存管理">
 <meta name="twitter:card" content="summary">
@@ -530,6 +530,8 @@ cH8gYmA2oojRhQsAAABMCGZeAIAE/AGYi5+X/wMGbvg6XHTdPwAAAABJRU5ErkJggg==">
     <div class="article-entry" itemprop="articleBody">
       
         <h2 id="1-申请的内存所在位置"><a href="#1-申请的内存所在位置" class="headerlink" title="1. 申请的内存所在位置"></a>1. 申请的内存所在位置</h2><p>new操作符从<strong>自由存储区（free store）</strong>上为对象动态分配内存空间，而malloc函数从<strong>堆</strong>上动态分配内存。自由存储区是C++基于new操作符的一个抽象概念，凡是通过new操作符进行内存申请，该内存即为自由存储区。而堆是操作系统中的术语，是操作系统所维护的一块特殊内存，用于程序的内存动态分配，C语言使用malloc从堆上分配内存，使用free释放已分配的对应内存。</p>
+<a id="more"></a>
+
 <p>那么自由存储区是否能够是堆（问题等价于new是否能在堆上动态分配内存），这取决于operator new 的实现细节。自由存储区不仅可以是堆，还可以是静态存储区，这都看operator new在哪里为对象分配内存。</p>
 <p>特别的，new甚至可以不为对象分配内存！<strong>定位new</strong>的功能可以办到这一点：</p>
 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> (place_address) type</span><br></pre></td></tr></table></figure>
@@ -1066,18 +1068,9 @@ mR3GB0AzMzOzw/gAaGZmZnYYHwDNzMzMjvKf//lfXDlfeIyHYPsAAAAASUVORK5CYII='/></p>
   
 <nav id="article-nav">
   
-    <a href="/2020/09/30/%E5%A4%84%E7%90%86new%E5%88%86%E9%85%8D%E5%86%85%E5%AD%98%E5%A4%B1%E8%B4%A5%E6%83%85%E5%86%B5/" id="article-nav-newer" class="article-nav-link-wrap">
-      <i class="icon-circle-left"></i>
-      <div class="article-nav-title">
-        
-          处理new分配内存失败情况
-        
-      </div>
-    </a>
   
-  
-    <a href="/2020/09/29/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" id="article-nav-older" class="article-nav-link-wrap">
-      <div class="article-nav-title">学习笔记</div>
+    <a href="/2020/09/30/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">C/C++内存泄漏及检测</div>
       <i class="icon-circle-right"></i>
     </a>
   
@@ -1217,10 +1210,6 @@ return o(i(t),arguments.length<2?void 0:u(arguments[1]))}})},function(t,n,r){var
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">C++内存管理</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">C++内存</a>
               </li>
             
             <div class="clearfix"></div>
