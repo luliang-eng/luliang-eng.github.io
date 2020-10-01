@@ -6,15 +6,374 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="http://example.com">
-  <title>Tag: C++内存管理 | Hexo</title>
+  <title>细说new与malloc的10点区别 | Hexo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Hexo">
-<meta property="og:url" content="http://example.com/tags/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/index.html">
+  <meta name="description" content="1. 申请的内存所在位置new操作符从自由存储区（free store）上为对象动态分配内存空间，而malloc函数从堆上动态分配内存。自由存储区是C++基于new操作符的一个抽象概念，凡是通过new操作符进行内存申请，该内存即为自由存储区。而堆是操作系统中的术语，是操作系统所维护的一块特殊内存，用于程序的内存动态分配，C语言使用malloc从堆上分配内存，使用free释放已分配的对应内存。 那么">
+<meta property="og:type" content="article">
+<meta property="og:title" content="细说new与malloc的10点区别">
+<meta property="og:url" content="http://example.com/2020/09/30/%E7%BB%86%E8%AF%B4new%E4%B8%8Emalloc%E7%9A%8410%E7%82%B9%E5%8C%BA%E5%88%AB/index.html">
 <meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1. 申请的内存所在位置new操作符从自由存储区（free store）上为对象动态分配内存空间，而malloc函数从堆上动态分配内存。自由存储区是C++基于new操作符的一个抽象概念，凡是通过new操作符进行内存申请，该内存即为自由存储区。而堆是操作系统中的术语，是操作系统所维护的一块特殊内存，用于程序的内存动态分配，C语言使用malloc从堆上分配内存，使用free释放已分配的对应内存。 那么">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="data:img/jpg;base64,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">
+<meta property="og:image" content="data:img/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAEmCAYAAADyYCFNAAAAAXNSR0IArs4c6QAAAARnQU1BAACx
+jwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAADSMSURBVHhe7dxtjvS6khxgr+SuY/Z6luoBZkAc
+pB0dnRlMsqSqVjF+PJCYX1Sput9D3HH7//znP//5HzMze80///yTxp9ofJaQ5U+j3offkT2VD4Bm
+Zi9SBwQzs7/IB0AzMzOzw/gAaGZmZnYYHwDNzMzMDuMDoJmZmdlhfAA0MzMzO8yfOAD+93//dxkP
+Wf4pnv78T+J3bWZmNvfxA2B1wOPYk//DvvvsV3/mJ7/DrhM+o5mZ2av+7P8CyLGn/oc9nnvl+bnn
+qs9+1Zy/6ur3ZWZm9q0eewB8yn/k4zlXn3fUhyzPsJ77VA7zfK9EHcMc36OIYw7XeMUahXtZd46Z
+mdm38/8bwJvFs69+hp3PzrWzNVrda4bnVfdVjq8dOz1mZmYn8v8J+GbjuUOWz0QtX2e4brZG3T3C
+qM9gnuvxnnEdXzti1kqPmZnZiXwAvNGrn+HV+pX9V/eaUXt3noOvM1zX7TMzMzuRD4A3evdnmO2H
+67uf7ZW9Y81xZTbTzMzM/r+PHwDHf6jDao5jfwk/O6/vgHtU+2Q57OHcDp7F6yqGObzO8CxeYx2u
+zczMTvUn/hdAu4YPOJrfj5mZ2b98APwS8b94+ZBjZmZmMz4AmpmZmR3GB0AzMzOzw/gAaGZmZnYY
+HwDNzMzMDuMDoJmZmdlhfh0A//nnn/+Hc5HP4sNubljpHWuWxbGnS/W+MrOKq/3MBv+M/Kt6B/F+
+MM9rMzP76ccBkP/BzNbVP6q7uaDynOvWzvZks97VecPo6czamW3nOP3nY+f36PR3ZmamLB0Aq1h4
+JVfls9xsllpXZnWR785DWQ/HdubaOfzzsf575HdmZlb7+AEw4movzo014pxaV6Ium8l5zs2oedXa
+nml8j4xz1RpjnIt7jp8k+9wcw3Xcj2vWa2Z2ssceAKv1rLYy6jpzuvNQ1lPNt+dT3+0rOVV7guwz
+c4zfEa/j3szsdB89AGKM8yrHunOUWd9YB4x3ZD3ZfFzbc6nvdva9jzXHIq7WJ1h9L35nZma1jx8A
+WTcX97xWOeWOmSGrf3Wm/V3qu+1+77O6qu+bZZ9ZvRe/MzOz2p/4I5BhpVetq/uZ7sxsPZPVvzrT
+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">
+<meta property="article:published_time" content="2020-09-30T14:02:06.000Z">
+<meta property="article:modified_time" content="2020-10-01T11:06:50.724Z">
 <meta property="article:author" content="John Doe">
+<meta property="article:tag" content="C++内存管理">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="data:img/jpg;base64,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">
   
     <link rel="alternative" href="/atom.xml" title="Hexo" type="application/atom+xml">
   
@@ -150,36 +509,488 @@
             <canvas data-colors="#eaeaea" data-sectionHeight="100" data-contentId="js-content" id="myCanvas1" class="anm-canvas"></canvas>
           </div>
           <div id="js-content" class="content-ll">
-            
-  
-  
+            <article id="post-细说new与malloc的10点区别" class="article article-type-post " itemscope itemprop="blogPost">
+  <div class="article-inner">
     
-    
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2020" class="archive-year">2020</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2020/09/30/%E7%BB%86%E8%AF%B4new%E4%B8%8Emalloc%E7%9A%8410%E7%82%B9%E5%8C%BA%E5%88%AB/" class="archive-article-date">
-  	<time datetime="2020-09-30T14:02:06.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-09-30</time>
-</a>
-        </div>
-    	 
+      <header class="article-header">
+        
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2020/09/30/%E7%BB%86%E8%AF%B4new%E4%B8%8Emalloc%E7%9A%8410%E7%82%B9%E5%8C%BA%E5%88%AB/">细说new与malloc的10点区别</a>
+    <h1 class="article-title" itemprop="name">
+      细说new与malloc的10点区别
     </h1>
   
 
-        <div class="article-info info-on-right">
-          
+        
+        <a href="/2020/09/30/%E7%BB%86%E8%AF%B4new%E4%B8%8Emalloc%E7%9A%8410%E7%82%B9%E5%8C%BA%E5%88%AB/" class="archive-article-date">
+  	<time datetime="2020-09-30T14:02:06.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-09-30</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="1-申请的内存所在位置"><a href="#1-申请的内存所在位置" class="headerlink" title="1. 申请的内存所在位置"></a>1. 申请的内存所在位置</h2><p>new操作符从<strong>自由存储区（free store）</strong>上为对象动态分配内存空间，而malloc函数从<strong>堆</strong>上动态分配内存。自由存储区是C++基于new操作符的一个抽象概念，凡是通过new操作符进行内存申请，该内存即为自由存储区。而堆是操作系统中的术语，是操作系统所维护的一块特殊内存，用于程序的内存动态分配，C语言使用malloc从堆上分配内存，使用free释放已分配的对应内存。</p>
+<p>那么自由存储区是否能够是堆（问题等价于new是否能在堆上动态分配内存），这取决于operator new 的实现细节。自由存储区不仅可以是堆，还可以是静态存储区，这都看operator new在哪里为对象分配内存。</p>
+<p>特别的，new甚至可以不为对象分配内存！<strong>定位new</strong>的功能可以办到这一点：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> (place_address) type</span><br></pre></td></tr></table></figure>
+
+<p>place_address为一个指针，代表一块内存的地址。当使用上面这种仅以一个地址调用new操作符时，new操作符调用特殊的operator new，也就是下面这个版本：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> * <span class="keyword">operator</span> <span class="title">new</span> <span class="params">(<span class="keyword">size_t</span>,<span class="keyword">void</span> *)</span> <span class="comment">//不允许重定义这个版本的operator new</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这个operator new<strong>不分配任何的内存</strong>，它只是简单地返回指针实参，然后右new表达式负责在place_address指定的地址进行对象的初始化工作。</p>
+<h2 id="2-返回类型安全性"><a href="#2-返回类型安全性" class="headerlink" title="2.返回类型安全性"></a>2.返回类型安全性</h2><p>new操作符内存分配成功时，返回的是对象类型的指针，类型严格与对象匹配，无须进行类型转换，故new是符合<strong>类型安全</strong>性的操作符。而malloc内存分配成功则是返回void * ，需要通过强制类型转换将void*指针转换成我们需要的类型。<br>类型安全很大程度上可以等价于内存安全，类型安全的代码不会试图方法自己没被授权的内存区域。关于C++的类型安全性可说的又有很多了。</p>
+<h2 id="3-内存分配失败时的返回值"><a href="#3-内存分配失败时的返回值" class="headerlink" title="3.内存分配失败时的返回值"></a>3.内存分配失败时的返回值</h2><p>new内存分配失败时，会抛出bac_alloc异常，它<strong>不会返回NULL</strong>；malloc分配内存失败时返回NULL。<br>在使用C语言时，我们习惯在malloc分配内存后判断分配是否成功：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> *a  = (<span class="keyword">int</span> *)<span class="built_in">malloc</span> ( <span class="keyword">sizeof</span> (<span class="keyword">int</span> ));</span><br><span class="line"><span class="keyword">if</span>(<span class="literal">NULL</span> == a)</span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span> </span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从C语言走入C++阵营的新手可能会把这个习惯带入C++：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> * a = <span class="keyword">new</span> <span class="keyword">int</span>();</span><br><span class="line"><span class="keyword">if</span>(<span class="literal">NULL</span> == a)</span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">&#123;   </span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>实际上这样做<strong>一点意义也没有</strong>，因为new根本不会返回NULL，而且程序能够执行到if语句已经说明内存分配成功了，如果失败早就抛异常了。正确的做法应该是使用异常机制：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">int</span> *a = <span class="keyword">new</span> <span class="keyword">int</span>();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">catch</span> (bad_alloc)</span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果你想顺便了解下异常基础，可以看<a target="_blank" rel="noopener" href="http://www.cnblogs.com/QG-whz/p/5136883.htmlC++">http://www.cnblogs.com/QG-whz/p/5136883.htmlC++</a> 异常机制分析。</p>
+<h2 id="4-是否需要指定内存大小"><a href="#4-是否需要指定内存大小" class="headerlink" title="4.是否需要指定内存大小"></a>4.是否需要指定内存大小</h2><p>使用new操作符申请内存分配时无须指定内存块的大小，编译器会根据类型信息自行计算，而malloc则需要显式地指出所需内存的尺寸。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A</span>&#123;</span>...&#125;</span><br><span class="line">A * ptr = <span class="keyword">new</span> A;</span><br><span class="line">A * ptr = (A *)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(A)); <span class="comment">//需要显式指定所需内存大小sizeof(A); </span></span><br></pre></td></tr></table></figure>
+
+<p>当然了，我这里使用malloc来为我们自定义类型分配内存是不怎么合适的，请看下一条。</p>
+<h2 id="5-是否调用构造函数-析构函数"><a href="#5-是否调用构造函数-析构函数" class="headerlink" title="5.是否调用构造函数/析构函数"></a>5.是否调用构造函数/析构函数</h2><p>使用new操作符来分配对象内存时会经历三个步骤：</p>
+<ul>
+<li>第一步：调用operator new 函数（对于数组是operator new[]）分配一块足够大的，<strong>原始</strong>的，未命名的内存空间以便存储特定类型的对象。</li>
+<li>第二步：编译器运行相应的<strong>构造函数</strong>以构造对象，并为其传入初值。</li>
+<li>第三部：对象构造完成后，返回一个指向该对象的指针。</li>
+</ul>
+<p>使用delete操作符来释放对象内存时会经历两个步骤：</p>
+<ul>
+<li>第一步：调用对象的析构函数。</li>
+<li>第二步：编译器调用operator delete(或operator delete[])函数释放内存空间。</li>
+</ul>
+<p>总之来说，new/delete会调用对象的构造函数/析构函数以完成对象的构造/析构。而malloc则不会。如果你不嫌啰嗦可以看下我的例子：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">A</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    A() :a(<span class="number">1</span>), b(<span class="number">1.11</span>)&#123;&#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="keyword">int</span> a;</span><br><span class="line">    <span class="keyword">double</span> b;</span><br><span class="line">&#125;;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    A * ptr = (A*)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(A));</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在return处设置断点，观看ptr所指内存的内容：</p>
+<p><img src='data:img/jpg;base64,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'/></p>
+<p>可以看出A的默认构造函数并没有被调用，因为数据成员a,b的值并没有得到初始化，这也是上面我为什么说使用malloc/free来处理C++的自定义类型不合适，其实不止自定义类型，标准库中凡是需要构造/析构的类型通通不合适。</p>
+<p>而使用new来分配对象时：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    A * ptr = <span class="keyword">new</span> A;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>查看程序生成的汇编代码可以发现，A的默认构造函数被调用了：</p>
+<p><img src='data:img/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAEmCAYAAADyYCFNAAAAAXNSR0IArs4c6QAAAARnQU1BAACx
+jwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAADSMSURBVHhe7dxtjvS6khxgr+SuY/Z6luoBZkAc
+pB0dnRlMsqSqVjF+PJCYX1Sput9D3HH7//znP//5HzMze80///yTxp9ofJaQ5U+j3offkT2VD4Bm
+Zi9SBwQzs7/IB0AzMzOzw/gAaGZmZnYYHwDNzMzMDuMDoJmZmdlhfAA0MzMzO8yfOAD+93//dxkP
+Wf4pnv78T+J3bWZmNvfxA2B1wOPYk//DvvvsV3/mJ7/DrhM+o5mZ2av+7P8CyLGn/oc9nnvl+bnn
+qs9+1Zy/6ur3ZWZm9q0eewB8yn/k4zlXn3fUhyzPsJ77VA7zfK9EHcMc36OIYw7XeMUahXtZd46Z
+mdm38/8bwJvFs69+hp3PzrWzNVrda4bnVfdVjq8dOz1mZmYn8v8J+GbjuUOWz0QtX2e4brZG3T3C
+qM9gnuvxnnEdXzti1kqPmZnZiXwAvNGrn+HV+pX9V/eaUXt3noOvM1zX7TMzMzuRD4A3evdnmO2H
+67uf7ZW9Y81xZTbTzMzM/r+PHwDHf6jDao5jfwk/O6/vgHtU+2Q57OHcDp7F6yqGObzO8CxeYx2u
+zczMTvUn/hdAu4YPOJrfj5mZ2b98APwS8b94+ZBjZmZmMz4AmpmZmR3GB0AzMzOzw/gAaGZmZnYY
+HwDNzMzMDuMDoJmZmdlhfh0A//nnn/+Hc5HP4sNubljpHWuWxbGnS/W+MrOKq/3MBv+M/Kt6B/F+
+MM9rMzP76ccBkP/BzNbVP6q7uaDynOvWzvZks97VecPo6czamW3nOP3nY+f36PR3ZmamLB0Aq1h4
+JVfls9xsllpXZnWR785DWQ/HdubaOfzzsf575HdmZlb7+AEw4movzo014pxaV6Ium8l5zs2oedXa
+nml8j4xz1RpjnIt7jp8k+9wcw3Xcj2vWa2Z2ssceAKv1rLYy6jpzuvNQ1lPNt+dT3+0rOVV7guwz
+c4zfEa/j3szsdB89AGKM8yrHunOUWd9YB4x3ZD3ZfFzbc6nvdva9jzXHIq7WJ1h9L35nZma1jx8A
+WTcX97xWOeWOmSGrf3Wm/V3qu+1+77O6qu+bZZ9ZvRe/MzOz2p/4I5BhpVetq/uZ7sxsPZPVvzrT
+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'/></p>
+<h2 id="6-对数组的处理"><a href="#6-对数组的处理" class="headerlink" title="6.对数组的处理"></a>6.对数组的处理</h2><p>C++提供了new[]与delete[]来专门处理数组类型:</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">A * ptr = <span class="keyword">new</span> A[<span class="number">10</span>];<span class="comment">//分配10个A对象</span></span><br></pre></td></tr></table></figure>
+
+<p>使用new[]分配的内存必须使用delete[]进行释放：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">delete</span> [] ptr;</span><br></pre></td></tr></table></figure>
+
+<p>new对数组的支持体现在它会分别调用构造函数函数初始化每一个数组元素，释放对象时为每个对象调用析构函数。注意delete[]要与new[]配套使用，不然会找出数组对象部分释放的现象，造成内存泄漏。</p>
+<p>至于malloc，它并知道你在这块内存上要放的数组还是啥别的东西，反正它就给你一块原始的内存，在给你个内存的地址就完事。所以如果要动态分配一个数组的内存，还需要我们手动自定数组的大小：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> * ptr = (<span class="keyword">int</span> *) <span class="built_in">malloc</span>( <span class="keyword">sizeof</span>(<span class="keyword">int</span>)* <span class="number">10</span> );<span class="comment">//分配一个10个int元素的数组</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="7-new与malloc是否可以相互调用"><a href="#7-new与malloc是否可以相互调用" class="headerlink" title="7.new与malloc是否可以相互调用"></a>7.new与malloc是否可以相互调用</h2><p>operator new /operator delete的实现可以基于malloc，而malloc的实现不可以去调用new。下面是编写operator new /operator delete 的一种简单方式，其他版本也与之类似：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> * <span class="keyword">operator</span> <span class="title">new</span> <span class="params">(<span class="keyword">sieze_t</span> size)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(<span class="keyword">void</span> * mem = <span class="built_in">malloc</span>(size)</span><br><span class="line">        <span class="keyword">return</span> mem;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="keyword">throw</span> bad_alloc();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">void</span> <span class="keyword">operator</span> <span class="keyword">delete</span>(<span class="keyword">void</span> *mem) <span class="keyword">noexcept</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">free</span>(mem);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="8-是否可以被重载"><a href="#8-是否可以被重载" class="headerlink" title="8.是否可以被重载"></a>8.是否可以被重载</h2><p>opeartor new /operator delete可以被重载。标准库是定义了operator new函数和operator delete函数的8个重载版本：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//这些版本可能抛出异常</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> * <span class="keyword">operator</span> <span class="title">new</span><span class="params">(<span class="keyword">size_t</span>)</span></span>;</span><br><span class="line"><span class="keyword">void</span> * <span class="keyword">operator</span> <span class="keyword">new</span>[](<span class="keyword">size_t</span>);</span><br><span class="line"><span class="function"><span class="keyword">void</span> * <span class="keyword">operator</span> <span class="title">delete</span> <span class="params">(<span class="keyword">void</span> * )</span><span class="keyword">noexcept</span></span>;</span><br><span class="line"><span class="keyword">void</span> * <span class="keyword">operator</span> <span class="keyword">delete</span>[](<span class="keyword">void</span> *<span class="number">0</span>）<span class="keyword">noexcept</span>;</span><br><span class="line"><span class="comment">//这些版本承诺不抛出异常</span></span><br><span class="line"><span class="keyword">void</span> * <span class="keyword">operator</span> <span class="keyword">new</span>(<span class="keyword">size_t</span> ,<span class="keyword">nothrow_t</span>&amp;) <span class="keyword">noexcept</span>;</span><br><span class="line"><span class="keyword">void</span> * <span class="keyword">operator</span> <span class="keyword">new</span>[](<span class="keyword">size_t</span>, <span class="keyword">nothrow_t</span>&amp; );</span><br><span class="line"><span class="keyword">void</span> * <span class="keyword">operator</span> <span class="keyword">delete</span> (<span class="keyword">void</span> *,<span class="keyword">nothrow_t</span>&amp; )<span class="keyword">noexcept</span>;</span><br><span class="line"><span class="keyword">void</span> * <span class="keyword">operator</span> <span class="keyword">delete</span>[](<span class="keyword">void</span> *<span class="number">0</span>,<span class="keyword">nothrow_t</span>&amp; ）<span class="keyword">noexcept</span>;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以自定义上面函数版本中的任意一个，前提是自定义版本必须位于全局作用域或者类作用域中。太细节的东西不在这里讲述，总之，我们知道我们有足够的自由去重载operator new /operator delete ,以决定我们的new与delete如何为对象分配内存，如何回收对象。</p>
+<p>而malloc/free并<strong>不允许重载</strong>。</p>
+<h2 id="9-能够直观地重新分配内存"><a href="#9-能够直观地重新分配内存" class="headerlink" title="9. 能够直观地重新分配内存"></a>9. 能够直观地重新分配内存</h2><p>使用malloc分配的内存后，如果在使用过程中发现内存不足，可以使用realloc函数进行内存重新分配实现内存的扩充。realloc先判断当前的指针所指内存是否有足够的连续空间，如果有，原地扩大可分配的内存地址，并且返回原来的地址指针；如果空间不够，先按照新指定的大小分配空间，将原有数据从头到尾拷贝到新分配的内存区域，而后释放原来的内存区域。</p>
+<p>new没有这样直观的配套设施来扩充内存。</p>
+<h2 id="10-客户处理内存分配不足"><a href="#10-客户处理内存分配不足" class="headerlink" title="10. 客户处理内存分配不足"></a>10. 客户处理内存分配不足</h2><p>在operator new抛出异常以反映一个未获得满足的需求之前，它会先调用一个用户指定的错误处理函数，这就是<strong>new-handler</strong>。new_handler是一个指针类型：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="built_in">std</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*new_handler)</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>指向了一个没有参数没有返回值的函数,即为错误处理函数。为了指定错误处理函数，客户需要调用set_new_handler，这是一个声明于的一个标准库函数:</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="built_in">std</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function">new_handler <span class="title">set_new_handler</span><span class="params">(new_handler p )</span> <span class="title">throw</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>set_new_handler的参数为new_handler指针，指向了operator new 无法分配足够内存时该调用的函数。其返回值也是个指针，指向set_new_handler被调用前正在执行（但马上就要发生替换）的那个new_handler函数。</p>
+<p>对于malloc，客户并不能够去编程决定内存不足以分配时要干什么事，只能看着malloc返回NULL。</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/QG-whz/p/5140930.html#_labelTop">回到顶部</a></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>将上面所述的10点差别整理成表格：</p>
+<table>
+<thead>
+<tr>
+<th>特征</th>
+<th align="left">new/delete</th>
+<th>malloc/free</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>分配内存的位置</td>
+<td align="left">自由存储区</td>
+<td>堆</td>
+</tr>
+<tr>
+<td>内存分配成功的返回值</td>
+<td align="left">完整类型指针</td>
+<td>void*</td>
+</tr>
+<tr>
+<td>内存分配失败的返回值</td>
+<td align="left">默认抛出异常</td>
+<td>返回NULL</td>
+</tr>
+<tr>
+<td>分配内存的大小</td>
+<td align="left">由编译器根据类型计算得出</td>
+<td>必须显式指定字节数</td>
+</tr>
+<tr>
+<td>处理数组</td>
+<td align="left">有处理数组的new版本new[]</td>
+<td>需要用户计算数组的大小后进行内存分配</td>
+</tr>
+<tr>
+<td>已分配内存的扩充</td>
+<td align="left">无法直观地处理</td>
+<td>使用realloc简单完成</td>
+</tr>
+<tr>
+<td>是否相互调用</td>
+<td align="left">可以，看具体的operator new/delete实现</td>
+<td>不可调用new</td>
+</tr>
+<tr>
+<td>分配内存时内存不足</td>
+<td align="left">客户能够指定处理函数或重新制定分配器</td>
+<td>无法通过用户代码进行处理</td>
+</tr>
+<tr>
+<td>函数重载</td>
+<td align="left">允许</td>
+<td>不允许</td>
+</tr>
+<tr>
+<td>构造函数与析构函数</td>
+<td align="left">调用</td>
+<td>不调用</td>
+</tr>
+</tbody></table>
+
+      
+
+      
+        <div class="page-reward">
+          <a href="javascript:;" class="page-reward-btn tooltip-top">
+            <div class="tooltip tooltip-east">
+            <span class="tooltip-item">
+              赏
+            </span>
+            <span class="tooltip-content">
+              <span class="tooltip-text">
+                <span class="tooltip-inner">
+                  <p class="reward-p"><i class="icon icon-quo-left"></i>谢谢你请我吃糖果<i class="icon icon-quo-right"></i></p>
+                  <div class="reward-box">
+                    
+                    
+                  </div>
+                </span>
+              </span>
+            </span>
+          </div>
+          </a>
+        </div>
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
 	<div class="article-tag tagcloud">
 		<i class="icon-price-tags icon"></i>
 		<ul class="article-tag-list">
@@ -191,19 +1002,115 @@
 		</ul>
 	</div>
 
-          
+      
 
+      
+
+      
+        
+<div class="share-btn share-icons tooltip-left">
+  <div class="tooltip tooltip-east">
+    <span class="tooltip-item">
+      <a href="javascript:;" class="share-sns share-outer">
+        <i class="icon icon-share"></i>
+      </a>
+    </span>
+    <span class="tooltip-content">
+      <div class="share-wrap">
+        <div class="share-icons">
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="icon icon-weibo"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="icon icon-weixin"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="icon icon-qq"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="icon icon-douban"></i>
+          </a>
+          <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a>
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="icon icon-facebook"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="icon icon-twitter"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="icon icon-google"></i>
+          </a>
         </div>
-        <div class="clearfix"></div>
-    </header>
+      </div>
+    </span>
+  </div>
+</div>
+
+<div class="page-modal wx-share js-wx-box">
+    <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//pan.baidu.com/share/qrcode?url=http://example.com/2020/09/30/%E7%BB%86%E8%AF%B4new%E4%B8%8Emalloc%E7%9A%8410%E7%82%B9%E5%8C%BA%E5%88%AB/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div class="mask js-mask"></div>
+      
+      <div class="clearfix"></div>
+    </div>
   </div>
 </article>
+
+  
+<nav id="article-nav">
+  
+    <a href="/2020/09/30/%E5%A4%84%E7%90%86new%E5%88%86%E9%85%8D%E5%86%85%E5%AD%98%E5%A4%B1%E8%B4%A5%E6%83%85%E5%86%B5/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          处理new分配内存失败情况
+        
+      </div>
+    </a>
   
   
-    </div></section>
+    <a href="/2020/09/29/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">学习笔记</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+  
+  
   
 
-    
+  
+
+  
+
+  
 
 
           </div>
@@ -226,9 +1133,9 @@
 	var yiliaConfig = {
 		mathjax: false,
 		isHome: false,
-		isPost: false,
+		isPost: true,
 		isArchive: false,
-		isTag: true,
+		isTag: false,
 		isCategory: false,
 		open_in_new: false,
 		toc_hide_index: true,
